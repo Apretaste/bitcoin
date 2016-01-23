@@ -2,12 +2,6 @@
 
 class Bitcoin extends Service
 {
-	/**
-	 * Function executed when the service is called
-	 * 
-	 * @param Request
-	 * @return Response
-	 * */
 	public function _main(Request $request)
 	{
 
@@ -23,5 +17,9 @@ class Bitcoin extends Service
 		$response->setResponseSubject("Llego el dinero!");
 		$response->createFromTemplate("basic.tpl", $responseContent);
 		return $response;
+	}
+
+	public function _enviar(Request $request){
+		
 	}
 }
