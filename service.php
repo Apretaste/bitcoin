@@ -2,8 +2,6 @@
 
 // Secret Mnemonic: mansion alpha inquiry enforce boring sorry rug ready come awkward camera seven
 
-//require "vendor/autoload.php";
-
 class Bitcoin extends Service
 {
 	private $apiKey = "c301-fe8f-c116-8c15";
@@ -23,26 +21,49 @@ class Bitcoin extends Service
 	public function _main(Request $request)
 	{
 //		$res = $this->createNewWallet("salvi.pascual@gmail.com");
-//		$res =  $this->checkFunds("salvi.pascual@gmail.com");
+//		$res = $this->checkFunds("salvi.pascual@gmail.com");
 //		$res = $this->listTransactions("31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj");
 //		$res = $this->transfer(0.12, "salvi.pascual@gmail.com", "1KfFRdihhRPdu87enUp1nbJ5jVSfayjEoR");
 //		$res = $this->USDToBTC(1);
-		$res = $this->BTCToUSD(1);
+//		$res = $this->BTCToUSD(1);
 
-		print($res);
-		exit;
 
-		// create a json object to send to the template
-		$responseContent = array(
-			"var_one" => "hello",
-			"var_two" => "world",
-			"var_three" => 23
-		);
+		$createResponse = false;
+		if ( ! $this->checkValidBitcoinUser($request->email)){
+			$createResponse=$this->createBitcoinUser($request->email);
+		}
+		else {
+			$createResponse = true;
+		}
 
-		// create the response
 		$response = new Response();
-		$response->setResponseSubject("Llego el dinero!");
-		$response->createFromTemplate("basic.tpl", $responseContent);
+		if ($createResponse) {
+
+			$balance = $this->getBalance($request->email);
+			$publicKey = $this->getPublicKey($request->email);
+			$transactions = $this->getTransactions($request->email);
+
+			// create the response
+			// create a json object to send to the template
+			$responseContent = array(
+				"balance" => $balance,
+				"usdBalance" => "89.93",
+				"email" => $request->email,
+				"publicKey" => $publicKey,
+				"transactions" => $transactions
+			);
+
+			$response->setResponseSubject("Resumen de su cuenta de Bitcoin");
+			//$smarty->assign('transactions', $transactions);
+			$response->createFromTemplate("basic.tpl", $responseContent);
+
+		} else {
+
+			$response->setResponseSubject("Bitcoin no disponible");
+			$response->createFromText("Este servicio no se encuentra disponible en este momento. Por favor, vuelva a enviar emails de Bitcoin mas tarde.");
+
+		}
+
 		return $response;
 	}
 
@@ -71,11 +92,9 @@ class Bitcoin extends Service
 
 	public function _ayuda(Request $request)
 	{
-		$wallet = "31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj";
-
 		$response = new Response();
 		$response->setResponseSubject("Que es BitCoin?");
-		$response->createFromTemplate("help.tpl", array("wallet"=>$wallet));
+		$response->createFromTemplate("help.tpl", array());
 		return $response;
 	}
 
@@ -161,7 +180,7 @@ class Bitcoin extends Service
 	private function createNewWallet($email)
 	{
 		return "31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj"; // @TODO remove in production
-	
+
 		$block_io = new BlockIo($this->apiKey, $this->pin, 2);
 		$address = $block_io->get_new_address(array('label' => $email));
 		return $address->data->address;
@@ -239,5 +258,47 @@ class Bitcoin extends Service
 		}
 
 		return substr(strtoupper(hash("sha256",hash("sha256",pack("H*",substr($address,0,strlen($address)-8)),true))),0,8) == substr($address,strlen($address)-8);
+	}
+
+	/**
+	 * Check if is a valid Bitcoin user
+	 * 
+	 * @author ibisarrastia
+	 * ...
+	 * */
+	private function checkValidBitcoinUser($email) {
+
+		// Check to see if the user already exists in the bitcoin table
+		$connection = new Connection();
+		$usersAccount = $connection->deepQuery("SELECT * FROM _bitcoin_accounts WHERE email like '$email' and active=1");
+		
+		//DISCUSS WITH SALVI - IS THIS ENOUGH VALIDATION OR SHOULD WE USE THE API TOO?
+		//IT MAY MAKE IT MORE SECURE??
+		return !empty($usersAccount[0]->email);
+	}
+
+	/**
+	 * ...
+	 * */
+	private function createBitcoinUser($email) {
+		//DO THIS AFTER SALVI'S PIECE
+		$publicKey = 'zeSRYrbYrtbdmH82x9CiJmhfY1JEiVhE7M';
+
+		//TODO create bitcoin user in Apretaste
+		// Create a new record in the bitcoin table
+		$connection = new Connection();
+		$return = $connection->deepQuery("INSERT INTO _bitcoin_accounts (email,public_key) VALUES ('$email','$publicKey')");
+		//print($return);
+		return $return;
+	}
+
+	/**
+	 * ...
+	 * */
+	private function getPublicKey($email) {
+		$connection = new Connection();
+		$publicKey = $connection->deepQuery("SELECT public_key FROM _bitcoin_accounts WHERE email like '$email' and active=true");
+
+		return $publicKey[0]->public_key;
 	}
 }

@@ -29,11 +29,7 @@
 	guardar&aacute; su dinero en internet. Este c&oacute;digo es el que
 	otros usar&aacute;n para pagarle, pero nadie puede extraer sus fondos,
 	as&iacute; que no tenga miedo en compartirlo. Hemos creado una
-	billetera para cada usuario de Apretaste, y la suya es:</p>
-
-<center>
-	<p>{$wallet}</p>
-</center>
+	billetera para cada usuario de Apretaste.</p>
 
 <p>Para recibir pagos por Bitcoin usted debe enviar su billetera a la
 	persona que le pagar&aacute;. Para realizar un pago usted debe pedir la
