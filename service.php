@@ -114,6 +114,20 @@ class Bitcoin extends Service
 	}
 
 	/**
+	 * List of businesses that accept bitcoin
+	 *
+	 * @param Request
+	 * @return Response
+	 * */
+	public function _negocios(Request $request)
+	{
+		$response = new Response();
+		$response->setResponseSubject("Negocios que aceptan BitCoin");
+		$response->createFromTemplate("negocios.tpl", array());
+		return $response;
+	}
+
+	/**
 	 * Send bitcoins
 	 *
 	 * @author salvipascual
