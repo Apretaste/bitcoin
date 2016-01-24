@@ -26,48 +26,36 @@ class Bitcoin extends Service
 	 * */
 	public function _main(Request $request)
 	{
-//		$res = $this->createNewWallet("html@apretaste.com");
-//		$res = $this->checkFunds("salvi.pascual@gmail.com");
-//		$res = $this->listTransactions("31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj");
-//		$res = $this->transfer(0.12, "salvi.pascual@gmail.com", "1KfFRdihhRPdu87enUp1nbJ5jVSfayjEoR");
-//		$res = $this->USDToBTC(1);
-//		$res = $this->BTCToUSD(1);
-
-
-		$createResponse = false;
-		if ( ! $this->checkValidBitcoinUser($request->email)){
-			$createResponse=$this->createBitcoinUser($request->email);
-		}
-		else {
-			$createResponse = true;
+		// be sure there is a valid user, else create it
+		$createResponse = true;
+		if ( ! $this->checkValidBitcoinUser($request->email))
+		{
+			$createResponse = $this->createBitcoinUser($request->email);
 		}
 
 		$response = new Response();
 		if ($createResponse)
 		{
-			$balance = $this->getBalance($request->email);
+			$balance = $this->checkFunds($request->email);
 			$publicKey = $this->getPublicKey($request->email);
-			$transactions = $this->getTransactions($request->email);
+			$transactions = $this->listTransactions($publicKey);
 
 			// create the response
-			// create a json object to send to the template
 			$responseContent = array(
 				"balance" => $balance,
-				"usdBalance" => "89.93",
+				"usdBalance" => $this->BTCToUSD($balance),
 				"email" => $request->email,
 				"publicKey" => $publicKey,
 				"transactions" => $transactions
 			);
 
-			$response->setResponseSubject("Resumen de su cuenta de Bitcoin");
-			//$smarty->assign('transactions', $transactions);
+			$response->setResponseSubject("Su cuenta de Bitcoin");
 			$response->createFromTemplate("basic.tpl", $responseContent);
-
 		}
 		else
 		{
-			$response->setResponseSubject("Bitcoin no disponible");
-			$response->createFromText("Lo sentimos, pero este servicio no se encuentra disponible en este momento. Por favor intente m&aacute;s tarde.");
+			$response->setResponseSubject("Informacion de Bitcoin no disponible");
+			$response->createFromText("Lo sentimos, pero hemos tenido un fallo temporal de comunicaci&oacute;n con los servidores de Bitcoin. Por favor intente nuevamente en unos minutos.");
 		}
 
 		return $response;
@@ -179,8 +167,8 @@ class Bitcoin extends Service
 
 		// get all received 
 		$received = $block_io->get_transactions(array('type' => 'received', 'addresses' => $publickey));
-
-		foreach ($received->data->txs as $data) {
+		foreach ($received->data->txs as $data)
+		{
 			$res = new stdClass();
 			$res->time = $data->time;
 			$res->sender = $data->senders[0];
@@ -191,14 +179,17 @@ class Bitcoin extends Service
 
 		// get all sent
 		$sent = $block_io->get_transactions(array('type' => 'sent', 'addresses' => $publickey));
-		foreach ($sent->data->txs as $data) {
+		foreach ($sent->data->txs as $data)
+		{
 			$res = new stdClass();
 			$res->time = $data->time;
 			$res->sender = $data->senders[0];
-			$res->amount = $data->amounts_received[0]->amount;
+			$res->amount = $data->amounts_sent[0]->amount;
 			$res->type = "sent";
 			$transactions[] = $res;
 		}
+
+		return $transactions;
 	}
 
 	/**
@@ -213,6 +204,53 @@ class Bitcoin extends Service
 		$block_io = new BlockIo($this->apiKey, $this->pin, 2);
 		$address = $block_io->get_new_address(array('label' => $email));
 		return $address->data->address;
+	}
+
+	/**
+	 * Check to see if the user already exists in the bitcoin table
+	 *
+	 * @author techibis
+	 * @param String, email
+	 * @return Boolean
+	 * */
+	private function checkValidBitcoinUser($email)
+	{
+		$connection = new Connection();
+		$usersAccount = $connection->deepQuery("SELECT * FROM _bitcoin_accounts WHERE email like '$email' and active=1");
+		return !empty($usersAccount[0]->email);
+	}
+
+	/**
+	 * Create a new bitcoin user in our database
+	 *
+	 * @author techibis
+	 * @param String, email
+	 * @return Boolean
+	 * */
+	private function createBitcoinUser($email)
+	{
+		// create a new wallet
+		$publicKey = $this->createNewWallet($email);
+		if(empty($publicKey)) return false;
+
+		// Create a new record in the bitcoin table
+		$connection = new Connection();
+		return $connection->deepQuery("INSERT INTO _bitcoin_accounts (email,public_key) VALUES ('$email','$publicKey')");
+	}
+
+	/**
+	 * Get the public key for a particular user
+	 *
+	 * @author techibis
+	 * @param String, email
+	 * @return String, public_key
+	 * */
+	private function getPublicKey($email)
+	{
+		$connection = new Connection();
+		$publicKey = $connection->deepQuery("SELECT public_key FROM _bitcoin_accounts WHERE email like '$email' and active=true");
+
+		return $publicKey[0]->public_key;
 	}
 
 	/**
@@ -236,49 +274,6 @@ class Bitcoin extends Service
 	 * */
 	private function BTCToUSD($amount)
 	{
-		return $this->rate/$amount;
-	}
-
-	/**
-	 * Check if is a valid Bitcoin user
-	 * 
-	 * @author ibisarrastia
-	 * ...
-	 * */
-	private function checkValidBitcoinUser($email)
-	{
-		// Check to see if the user already exists in the bitcoin table
-		$connection = new Connection();
-		$usersAccount = $connection->deepQuery("SELECT * FROM _bitcoin_accounts WHERE email like '$email' and active=1");
-		
-		//DISCUSS WITH SALVI - IS THIS ENOUGH VALIDATION OR SHOULD WE USE THE API TOO?
-		//IT MAY MAKE IT MORE SECURE??
-		return !empty($usersAccount[0]->email);
-	}
-
-	/**
-	 * ...
-	 * */
-	private function createBitcoinUser($email)
-	{
-		//DO THIS AFTER SALVI'S PIECE
-		$publicKey = 'zeSRYrbYrtbdmH82x9CiJmhfY1JEiVhE7M';
-
-		//TODO create bitcoin user in Apretaste
-		// Create a new record in the bitcoin table
-		$connection = new Connection();
-		$return = $connection->deepQuery("INSERT INTO _bitcoin_accounts (email,public_key) VALUES ('$email','$publicKey')");
-		//print($return);
-		return $return;
-	}
-
-	/**
-	 * ...
-	 * */
-	private function getPublicKey($email) {
-		$connection = new Connection();
-		$publicKey = $connection->deepQuery("SELECT public_key FROM _bitcoin_accounts WHERE email like '$email' and active=true");
-
-		return $publicKey[0]->public_key;
+		return $this->rate*$amount;
 	}
 }
