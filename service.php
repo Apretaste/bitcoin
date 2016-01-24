@@ -135,6 +135,7 @@ class Bitcoin extends Service
 		}
 		catch(Exception $e)
 		{
+			print_r($e); exit;
 			return false;
 		}
 	}
