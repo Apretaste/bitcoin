@@ -12,29 +12,30 @@
 
 <h3>Detalle de Movimientos Realizados</h3>
 
-<p>
-
 <table border="0" cellpadding="4" cellspacing="0" width="100%">
-<tr><td align="center"><b>Fecha</b></td><td align="center"><b>Billetera</b></td><td align="center"><b>Cantidad</b></td></tr>
-{foreach $transactions as $t}
-	{if $t@index mod 2 eq 0}
-	  {if $t[3] eq "sent"}
-	     {* put empty table row *}
-	     <tr> <td bgcolor="#F2F2F2" ><font color="#FF0000">{$t[0]}</font></td><td bgcolor="#F2F2F2" ><font color="#FF0000">{$t[1]}</font></td><td bgcolor="#F2F2F2" align="right"><font color="#FF0000">-{$t[2]} &#3647;</font></td></tr>
-	    {else}
-	  <tr><td bgcolor="#F2F2F2"><font color="#5EBB47">{$t[0]}</font></td><td bgcolor="#F2F2F2"><font color="#5EBB47">{$t[1]}</font></td><td bgcolor="#F2F2F2" align="right"><font color="#5EBB47">{$t[2]} &#3647;</font></td></tr>
-	    {/if}
-	  {else}
-	  {if $t[3] eq "sent"}
-	     {* put empty table row *}
-	     <tr> <td bgcolor="#E6E6E6" ><font color="#FF0000">{$t[0]}</font></td><td  bgcolor="#E6E6E6"><font color="#FF0000">{$t[1]}</font></td><td bgcolor="#E6E6E6" align="right"><font color="#FF0000">-{$t[2]} &#3647;</font></td></tr>
-	    {else}
-	  <tr><td bgcolor="#E6E6E6"><font color="#5EBB47">{$t[0]}</font></td><td bgcolor="#E6E6E6"><font color="#5EBB47">{$t[1]}</font></td><td bgcolor="#E6E6E6" align="right"><font color="#5EBB47">{$t[2]} &#3647;</font></td></tr>
-	    {/if}
-	{/if}
-{/foreach}
+	<tr>
+		<th align="center">Fecha</th>
+		<th align="center">Billetera</th>
+		<th align="center">Cantidad</th>
+	</tr>
+	{foreach $transactions as $t}
+		{if $t@index mod 2 eq 0}
+		  {if $t[3] eq "sent"}
+		     {* put empty table row *}
+		     <tr><td bgcolor="#F2F2F2" ><font color="#FF0000">{$t[0]}</font></td><td bgcolor="#F2F2F2" ><font color="#FF0000">{$t[1]}</font></td><td bgcolor="#F2F2F2" align="right"><font color="#FF0000">-{$t[2]} &#3647;</font></td></tr>
+		    {else}
+		  <tr><td bgcolor="#F2F2F2"><font color="#5EBB47">{$t[0]}</font></td><td bgcolor="#F2F2F2"><font color="#5EBB47">{$t[1]}</font></td><td bgcolor="#F2F2F2" align="right"><font color="#5EBB47">{$t[2]} &#3647;</font></td></tr>
+		    {/if}
+		  {else}
+		  {if $t[3] eq "sent"}
+		     {* put empty table row *}
+		     <tr> <td bgcolor="#E6E6E6" ><font color="#FF0000">{$t[0]}</font></td><td  bgcolor="#E6E6E6"><font color="#FF0000">{$t[1]}</font></td><td bgcolor="#E6E6E6" align="right"><font color="#FF0000">-{$t[2]} &#3647;</font></td></tr>
+		    {else}
+		  <tr><td bgcolor="#E6E6E6"><font color="#5EBB47">{$t[0]}</font></td><td bgcolor="#E6E6E6"><font color="#5EBB47">{$t[1]}</font></td><td bgcolor="#E6E6E6" align="right"><font color="#5EBB47">{$t[2]} &#3647;</font></td></tr>
+		    {/if}
+		{/if}
+	{/foreach}
 </table>
-</p>
 
 {space10}
 

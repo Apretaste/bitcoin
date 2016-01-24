@@ -18,9 +18,15 @@ class Bitcoin extends Service
 		$this->rate = json_decode(file_get_contents("https://bitpay.com/api/rates/usd"))->rate;
 	}
 
+	/**
+	 * Get details about your account
+	 * 
+	 * @param Request
+	 * @return Response
+	 * */
 	public function _main(Request $request)
 	{
-//		$res = $this->createNewWallet("salvi.pascual@gmail.com");
+//		$res = $this->createNewWallet("html@apretaste.com");
 //		$res = $this->checkFunds("salvi.pascual@gmail.com");
 //		$res = $this->listTransactions("31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj");
 //		$res = $this->transfer(0.12, "salvi.pascual@gmail.com", "1KfFRdihhRPdu87enUp1nbJ5jVSfayjEoR");
@@ -37,8 +43,8 @@ class Bitcoin extends Service
 		}
 
 		$response = new Response();
-		if ($createResponse) {
-
+		if ($createResponse)
+		{
 			$balance = $this->getBalance($request->email);
 			$publicKey = $this->getPublicKey($request->email);
 			$transactions = $this->getTransactions($request->email);
@@ -57,39 +63,60 @@ class Bitcoin extends Service
 			//$smarty->assign('transactions', $transactions);
 			$response->createFromTemplate("basic.tpl", $responseContent);
 
-		} else {
-
+		}
+		else
+		{
 			$response->setResponseSubject("Bitcoin no disponible");
-			$response->createFromText("Este servicio no se encuentra disponible en este momento. Por favor, vuelva a enviar emails de Bitcoin mas tarde.");
-
+			$response->createFromText("Lo sentimos, pero este servicio no se encuentra disponible en este momento. Por favor intente m&aacute;s tarde.");
 		}
 
 		return $response;
 	}
 
+	/**
+	 * Send bitcoins
+	 *
+	 * @param Request
+	 * @return Response
+	 * */
 	public function _enviar(Request $request)
 	{
-//		isBitcoinKeyValid
-		
-		// get the wallet to make the transfer
-		$wallet = "31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj";
-
-		// get the amount to send in Bitcoin
-		$amountUSD = $request->query;
+		// get info from the subject
+		$info = explode(" ", $request->query);
+		$amountUSD = $info[0];
 		$amountBTC = $this->USDToBTC($amountUSD);
+		$wallet = $info[1];
 
-		$responseContent = array(
-			"wallet" => $wallet,
-			"amountBTC" => $amountBTC,
-			"amountUSD" => $amountUSD
-		);
+		// make the transfer
+		$result = $this->transfer($amountBTC, $request->email, $wallet);
 
-		$response = new Response();
-		$response->setResponseSubject("Transferencia realizada correctamente");
-		$response->createFromTemplate("transfer.tpl", $responseContent);
-		return $response;
+		// create the content to to send to the view
+		$responseContent = array("wallet" => $wallet, "amountBTC" => $amountBTC, "amountUSD" => $amountUSD);
+
+		// the response if everything was ok
+		if($result)
+		{
+			$response = new Response();
+			$response->setResponseSubject("Transferencia realizada correctamente");
+			$response->createFromTemplate("transfer.tpl", $responseContent);
+			return $response;
+		}
+		// the response in case the transfer failed
+		else 
+		{
+			$response = new Response();
+			$response->setResponseSubject("Transferencia fallida");
+			$response->createFromTemplate("fail.tpl", $responseContent);
+			return $response;
+		}
 	}
 
+	/**
+	 * Introductory words to bitcoin
+	 *
+	 * @param Request
+	 * @return Response
+	 * */
 	public function _ayuda(Request $request)
 	{
 		$response = new Response();
@@ -109,9 +136,13 @@ class Bitcoin extends Service
 	{
 		$block_io = new BlockIo($this->apiKey, $this->pin, 2);
 
+		// the API only accept numbers of 8 digit precition
+		$amount = number_format($amount, 8);
+
 		try
 		{
-			$res = $block_io->withdraw_from_labels(array('amounts' => $amount, 'from_labels' => $fromEmail, 'to_addresses' => $toPublickey));
+			// place the request
+			$res = $block_io->withdraw_from_labels(array('amounts' => $amount, 'from_labels' => $fromEmail, 'to_addresses' => $toPublickey, 'pin' => 'apretaste'));
 			return $res->status != "fail";
 		}
 		catch(Exception $e)
@@ -179,8 +210,6 @@ class Bitcoin extends Service
 	 * */
 	private function createNewWallet($email)
 	{
-		return "31pspFm7ymb8EA7RsqBxAZbuXoAxzZejnj"; // @TODO remove in production
-
 		$block_io = new BlockIo($this->apiKey, $this->pin, 2);
 		$address = $block_io->get_new_address(array('label' => $email));
 		return $address->data->address;
@@ -209,56 +238,6 @@ class Bitcoin extends Service
 	{
 		return $this->rate/$amount;
 	}
-	
-	/**
-	 * Check if a Bitcoin address is valid
-	 * 
-	 * @author internet
-	 * @param String, Bitcoin public address
-	 * @return Boolean
-	 * */
-	function isBitcoinKeyValid($address)
-	{
-		$origbase58 = $address;
-		$dec = "0";
-
-		for ($i = 0; $i < strlen($address); $i++)
-		{
-			$dec = bcadd(bcmul($dec,"58",0),strpos("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",substr($address,$i,1)),0);
-		}
-
-		$address = "";
-		while (bccomp($dec,0) == 1)
-		{
-			$dv = bcdiv($dec,"16",0);
-			$rem = (integer)bcmod($dec,"16");
-			$dec = $dv;
-			$address = $address.substr("0123456789ABCDEF",$rem,1);
-		}
-		$address = strrev($address);
-
-		for ($i = 0; $i < strlen($origbase58) && substr($origbase58,$i,1) == "1"; $i++)
-		{
-			$address = "00".$address;
-		}
-
-		if (strlen($address)%2 != 0)
-		{
-			$address = "0".$address;
-		}
-
-		if (strlen($address) != 50)
-		{
-			return false;
-		}
-
-		if (hexdec(substr($address,0,2)) > 0)
-		{
-			return false;
-		}
-
-		return substr(strtoupper(hash("sha256",hash("sha256",pack("H*",substr($address,0,strlen($address)-8)),true))),0,8) == substr($address,strlen($address)-8);
-	}
 
 	/**
 	 * Check if is a valid Bitcoin user
@@ -266,8 +245,8 @@ class Bitcoin extends Service
 	 * @author ibisarrastia
 	 * ...
 	 * */
-	private function checkValidBitcoinUser($email) {
-
+	private function checkValidBitcoinUser($email)
+	{
 		// Check to see if the user already exists in the bitcoin table
 		$connection = new Connection();
 		$usersAccount = $connection->deepQuery("SELECT * FROM _bitcoin_accounts WHERE email like '$email' and active=1");
@@ -280,7 +259,8 @@ class Bitcoin extends Service
 	/**
 	 * ...
 	 * */
-	private function createBitcoinUser($email) {
+	private function createBitcoinUser($email)
+	{
 		//DO THIS AFTER SALVI'S PIECE
 		$publicKey = 'zeSRYrbYrtbdmH82x9CiJmhfY1JEiVhE7M';
 
