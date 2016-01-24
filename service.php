@@ -121,9 +121,19 @@ class Bitcoin extends Service
 	 * */
 	public function _negocios(Request $request)
 	{
+		$path = $this->pathToService;
+		$images = array(
+			"$path/images/airbnb.jpg",
+			"$path/images/carnival.jpg",
+			"$path/images/virgin-atlantic.jpg",
+			"$path/images/unilever.jpg",
+			"$path/images/netflix.png",
+			"$path/images/DimeCuba.jpg"
+		);
+
 		$response = new Response();
 		$response->setResponseSubject("Negocios que aceptan BitCoin");
-		$response->createFromTemplate("negocios.tpl", array());
+		$response->createFromTemplate("negocios.tpl", array("path"=>$path), $images);
 		return $response;
 	}
 
