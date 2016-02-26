@@ -26,6 +26,13 @@ class Bitcoin extends Service
 	 * */
 	public function _main(Request $request)
 	{
+		// @TODO remove bulshit answer to use the service 
+		$response = new Response();
+		$response->setResponseSubject("Bitcoin temporalmente no disponible");
+		$response->createFromText("Lo sentimos, pero Bitcoin esta temporalmente detenido. Le dejaremos saber cuando empecemos a funcionar. Gracias!");
+		return $response;
+		// END TODO
+
 		// be sure there is a valid user, else create it
 		$createResponse = true;
 		if ( ! $this->checkValidBitcoinUser($request->email))
@@ -69,6 +76,13 @@ class Bitcoin extends Service
 	 * */
 	public function _enviar(Request $request)
 	{
+		// @TODO remove bulshit answer to use the service
+		$response = new Response();
+		$response->setResponseSubject("Bitcoin temporalmente no disponible");
+		$response->createFromText("Lo sentimos, pero Bitcoin esta temporalmente detenido. Le dejaremos saber cuando empecemos a funcionar. Gracias!");
+		return $response;
+		// END TODO
+
 		// get info from the subject
 		$info = explode(" ", $request->query);
 		$amountUSD = $info[0];
@@ -121,6 +135,13 @@ class Bitcoin extends Service
 	 * */
 	public function _negocios(Request $request)
 	{
+		// @TODO remove bulshit answer to use the service
+		$response = new Response();
+		$response->setResponseSubject("Bitcoin temporalmente no disponible");
+		$response->createFromText("Lo sentimos, pero Bitcoin esta temporalmente detenido. Le dejaremos saber cuando empecemos a funcionar. Gracias!");
+		return $response;
+		// END TODO
+
 		$path = $this->pathToService;
 		$images = array(
 			"$path/images/airbnb.jpg",
